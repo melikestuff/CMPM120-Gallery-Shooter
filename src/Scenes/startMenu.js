@@ -8,7 +8,12 @@ class StartMenu extends Phaser.Scene {
     }
 
     init(data) {
-
+        if (data.completion === undefined) {
+            this.beatLevelOne = false; // If undefined, assume false
+        } else {
+            this.beatLevelOne = data.completion;
+        }
+        console.log("Status of beating 1st level: " + this.beatLevelOne);
     }
     // Use preload to load art and sound assets before the scene starts running.
     preload() {
@@ -18,6 +23,8 @@ class StartMenu extends Phaser.Scene {
     }
 
     create() {
+// Controls
+document.getElementById('description').innerHTML = '<h2>Car Stampede</h2><br>S: Down // W: Up // Space: fire/emit // LMB1: Interact with button and UI'
 //Add the tile map
     this.map = this.add.tilemap("map", 16, 16, 20, 20);
     this.tileset = this.map.addTilesetImage("Urban", "urbanTiles");
@@ -49,7 +56,7 @@ class StartMenu extends Phaser.Scene {
 
         // Click handler
         button.on("pointerdown", () => {
-            this.scene.start("gameplayScene");
+            this.scene.start("gameplayScene", {completion: this.beatLevelOne});
         });
 
 //Credits and controls button
@@ -69,7 +76,8 @@ class StartMenu extends Phaser.Scene {
 
         // Click handler
         buttonCC.on("pointerdown", () => {
-            this.scene.start("CreditsScene");
+            //this.scene.start("EndScreen", { finalScore: score, remainingHP: currHP, completion: completed });
+            this.scene.start("CreditsScene", {completion: this.beatLevelOne});
         });
     }
 

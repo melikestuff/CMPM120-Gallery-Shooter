@@ -11,6 +11,7 @@ class EndScreen extends Phaser.Scene {
         // This gets called before preload/create
         this.finalScore = data.finalScore;
         this.remainingHP = data.remainingHP;
+        this.beatLevelOne = data.completion;
         console.log("Received score:", this.finalScore);
     }
     // Use preload to load art and sound assets before the scene starts running.
@@ -38,13 +39,13 @@ class EndScreen extends Phaser.Scene {
         // Make it interactive
         button.setInteractive({ useHandCursor: true });
 
-        // Hover effects (optional)
+        // Hover effects
         button.on("pointerover", () => button.setStyle({ fill: "#ffff00" }));
         button.on("pointerout", () => button.setStyle({ fill: "#00ff00" }));
 
         // Click handler
         button.on("pointerdown", () => {
-            this.scene.start("StartMenu");
+            this.scene.start("StartMenu", {completion: this.beatLevelOne});
         });
     }
 

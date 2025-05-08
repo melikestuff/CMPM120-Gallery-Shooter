@@ -8,7 +8,7 @@ class CreditsScene extends Phaser.Scene {
     }
 
     init(data) {
-
+        this.beatLevelOne = data.completion;
     }
     // Use preload to load art and sound assets before the scene starts running.
     preload() {
@@ -18,6 +18,10 @@ class CreditsScene extends Phaser.Scene {
     }
 
     create() {
+
+// Controls
+document.getElementById('description').innerHTML = '<h2>Car Stampede</h2><br>S: Down // W: Up // Space: fire/emit // LMB1: Interact with button and UI'
+
 //Add the tile map
     this.map = this.add.tilemap("map", 16, 16, 20, 20);
     this.tileset = this.map.addTilesetImage("Urban", "urbanTiles");

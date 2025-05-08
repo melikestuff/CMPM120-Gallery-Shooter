@@ -1,13 +1,16 @@
 
-const playerSpeed = 200; //pixels per second
+let playerSpeed = 200; //pixels per second
 let maxHP = 3; //Starting health of player
 let currHP = maxHP;
 let elaspedTime = 0;
-let surviveFor = 60;
+let surviveFor = 30;
 let spawnTime = 3;
 let currSpawnTime = spawnTime;
 
 let score = 0;
+
+let timeToAttack = 2.5;
+let atkCounter = timeToAttack;
 
 class gameplay extends Phaser.Scene {
     collides(a, b) {
@@ -30,7 +33,7 @@ class gameplay extends Phaser.Scene {
         for (let i = 0; i <= currHP; i++){
             score= score + 1000;
         }
-        this.scene.start("EndScreen", { finalScore: score, remainingHP: currHP });
+        this.scene.start("EndScreen", { finalScore: score, remainingHP: currHP, completion: this.beatLevelOne });
     }
     //enemyCar
     //path 
@@ -62,7 +65,7 @@ class gameplay extends Phaser.Scene {
                     rotateToPath: true,
                     rotationOffset: 180
                });
-                console.log("Should follow path now");
+                //console.log("Should follow path now");
                 break;
             }
         }
@@ -94,8 +97,15 @@ class gameplay extends Phaser.Scene {
 
         this.my.sprite.enemyBullet = []; // Create an object to hold sprite bindings for enemy bullets
         this.maxEnemyBullets = 20;
+
+        this.boss = null;
     }
 
+    init(data) {
+        // This gets called before preload/create
+        this.beatLevelOne = data.completion;
+        console.log(this.beatLevelOne);
+    }
     // Use preload to load art and sound assets before the scene starts running.
     preload() {
         
@@ -105,10 +115,11 @@ class gameplay extends Phaser.Scene {
         //this.load.image("Name here", "File name);
         this.load.image("playerModel", "character_roundGreen.png");
         this.load.image("playerBullet", "character_handGreen.png");
-        this.load.image("enemyBullet", "rounded_red.png");
+        this.load.image("enemyBullet", "character_handRed.png");
         this.load.image("smallCar", "buggy.png");
         this.load.image("mediumCar", "rounded_red.png");
         this.load.image("BigCar", "truck.png");
+        this.load.image("Boss", "bus_school.png");
 
         this.load.setPath("./assets/");
         this.load.image("urbanTiles", "tilemap_packed.png");    // tile sheet
@@ -123,6 +134,8 @@ class gameplay extends Phaser.Scene {
     create() {
     let my = this.my;   // create an alias to this.my for readability
 
+    // Controls
+document.getElementById('description').innerHTML = '<h2>Car Stampede</h2><br>S: Down // W: Up // Space: fire/emit // LMB1: Interact with button and UI'
 //Load in tilemap
     this.map = this.add.tilemap("map", 16, 16, 20, 20);
     this.tileset = this.map.addTilesetImage("Urban", "urbanTiles");
@@ -135,13 +148,12 @@ class gameplay extends Phaser.Scene {
 
 //HUD for score and health
 
-    this.hudText = this.add.text(650, 0, `Score: ${score}`, {
+    this.scoreText = this.add.text(50, 0, `Score: ${score}`, {
             font: 'bold 35px Arial',
             backgroundColor: "#ffffff",
             fill: '#000000'
         });
-
-    this.hudText = this.add.text(50, 550, `Lives: ${currHP}`, {
+    this.livesText = this.add.text(50, 550, `Lives: ${currHP}`, {
             font: 'bold 35px Arial',
             backgroundColor: "#ffffff",
             fill: '#000000'
@@ -215,15 +227,25 @@ class gameplay extends Phaser.Scene {
     const graphics = this.add.graphics();
     graphics.lineStyle(2, 0x00ff00, 1); // Green lines
 
+    /*
     // Draw each curve (For visual purposes)
     this.paths.forEach(curve => {
         curve.draw(graphics, 64);
     });
+*/
 
 //Set some variables
     this.bulletSpeed = 12;
 //Load and add sprites
     this.player = this.add.sprite(50, 300, "playerModel");
+    this.player.setScale(1.0, .5);
+
+//Make the boss
+    this.boss = this.add.sprite(600,300, "Boss");
+    this.boss.hp = 300;
+    this.boss.flipX = true;
+    this.boss.visible = false;
+    this.boss.setScale(5);
 
 //Pre make all enemies
     for (let i=0; i < this.maxCars; i++) {
@@ -235,7 +257,7 @@ class gameplay extends Phaser.Scene {
         my.sprite.cars[i].flipX = true;
         my.sprite.cars[i].setScale(1.5);
         //console.log(my.sprite.cars[i].health);
-        console.log("Made a car");
+        //console.log("Made a car");
     }
 //Pre make all bullets
     for (let i=0; i < this.maxBullets; i++) {
@@ -267,12 +289,32 @@ class gameplay extends Phaser.Scene {
     this.spawnNewEnemy(3);
     this.spawnNewEnemy(4);
 */
+//If player beat lvl 1, go to lvl 2
+//Tweaks values of both player and enemies
+//Spawn Boss
+    if (this.beatLevelOne){
+        console.log("Player has beat lvl 1, Going to level 2.");
+        currHP = 6;
+        maxHP = 6;
+        spawnTime = 2;
+        currSpawnTime = spawnTime;
+        playerSpeed = 250;
+        this.bulletCooldown = .25;        // Number of seconds to wait before making a new bullet
+        this.bulletCooldownCounter = this.bulletCooldown;
+
+        this.boss.visible = true;
+    }
     console.log("create works and is finished!");
     }
 
     update(time, delta) {
         let my = this.my;
         
+//Update hud displays
+    this.scoreText.setText(`Score: ${score}`);
+    this.livesText.setText(`Lives: ${currHP}`);
+
+
         //console.log("update works!");
         //let my = this.my; //for bullets
         //let player = this.player; //for player
@@ -322,12 +364,12 @@ class gameplay extends Phaser.Scene {
         //Updates every visible bullet on screen
         //Also does collision logic when bullet hits a car.
         for (let bullet of my.sprite.bullet) {
-            // if the bullet is visibile it's active, so move it
+            // if the bullet is visible it's active, so move it
             if (bullet.visible) {
                 bullet.x += this.bulletSpeed;
                 for (let car of my.sprite.cars){
                     if (this.collides(bullet,car) && car.visible){
-                        console.log("Collision between emitted object of player and enemy!");
+                        //console.log("Collision between emitted object of player and enemy!");
                         this.sound.play("clashSFX", {
                             volume: .5   // Can adjust volume using this, goes from 0 to 1
                         });
@@ -336,6 +378,19 @@ class gameplay extends Phaser.Scene {
                         if (car.health <= 0){
                             car.visible = false;
                             score = score + 200;
+                        }
+                    }
+                    if (this.collides(bullet,this.boss) && this.boss.visible){
+                        this.sound.play("clashSFX", {
+                            volume: .5   // Can adjust volume using this, goes from 0 to 1
+                        });
+                        bullet.visible = false;
+                        this.boss.hp--;
+                        //console.log(this.boss.hp);
+                        if (this.boss.hp <= 0){
+                            this.boss.visible = false;
+                            score = score + 10000;
+                            this.endScene();
                         }
                     }
                 }
@@ -347,17 +402,19 @@ class gameplay extends Phaser.Scene {
                 bullet.visible = false;
             }
         }
-        //Same as the player bullets, but for enemy emitted objects now
-        //Now checks for collision of player
+//Same as the player bullets, but for enemy emitted objects now
+//Now checks for collision of player and does movement
         for (let bullet of my.sprite.enemyBullet) {
-            // if the bullet is visibile it's active, so move it
+
+            // if the bullet is visible it's active, so move it
             if (bullet.visible) {
+                //console.log(bullet.x);
                 bullet.x -= this.bulletSpeed;
                 if(this.collides(bullet,this.player)){
                     bullet.visible = false;
                     this.playerDamaged();
                 }
-                if (bullet.x > 800) {
+                if (bullet.x < 0) {
                     bullet.visible = false;
                 }
             }
@@ -373,6 +430,7 @@ class gameplay extends Phaser.Scene {
         this.bulletCooldownCounter = this.bulletCooldownCounter + delta/1000;
         elaspedTime = elaspedTime + delta/1000;
         currSpawnTime = currSpawnTime + delta/1000;
+        atkCounter = atkCounter + delta/1000;
         //console.log(elaspedTime);
 
         //Collision check if car made it far enough into the path.
@@ -394,17 +452,48 @@ class gameplay extends Phaser.Scene {
             let randomNum = 0;
             for (let i = 0; i < amtToSpawn; i++){
                 randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-                console.log("Spawning a car on lane " + randomNum);
+                //console.log("Spawning a car on lane " + randomNum);
                 this.spawnNewEnemy(randomNum);
             }
         }
+//Logic to emit an enemy projectile that harms the player on collision.
+        if (atkCounter > timeToAttack){
+            console.log(atkCounter +  " " + timeToAttack);
+            for (let car of my.sprite.cars){
+                if (car.visible){
+                    for (let bullet of my.sprite.enemyBullet) {
+                        // If the bullet is invisible, it's available
+                        if (!bullet.visible) {
+                            bullet.x = car.x;
+                            bullet.y = car.y;
+                            bullet.visible = true;
+                            //console.log("Emitted an Enemy object!");
+                            break;    // Exit the loop, so we only activate one bullet at a time
+                        }
+                    }
+                }
+            }
+            atkCounter = 0;
+        }
 
-        if(elaspedTime > 30){
+        
+        if((elaspedTime > surviveFor) && !this.beatLevelOne){
+            this.beatLevelOne = true;
             this.endScene();
         }
         
-
-
+//Logic for phase 2 of boss fight
+//console.log(this.boss.hp);
+        if(this.boss.hp < 200 && this.boss.visible){
+            //console.log(this.boss.hp);
+            //console.log("Entering phase 2");
+            this.boss.x = this.boss.x - 25 * delta/1000;
+            //console.log(this.boss.x);
+            if (this.boss.x < 0 && this.boss.visible){
+                currHP = 0;
+                this.endScene();
+            }
+        }
         //Collision checks for player emitted objects and enemy vehicles.
 
     }

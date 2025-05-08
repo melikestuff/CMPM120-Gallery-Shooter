@@ -2,8 +2,13 @@
 // Created: 5/5/2025
 // Phaser: 3.70.0
 //
-//Tile set made by Kenny assets
+//Assets made by Kenny's assets
 //https://kenney.nl/assets/rpg-urban-pack
+//
+// Some code inspired by Jim Whitehead
+// Most of the code was rewritten so that it can be stored in objects
+//
+//
 
 
 "use strict"
